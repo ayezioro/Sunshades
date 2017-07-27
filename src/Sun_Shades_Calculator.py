@@ -23,30 +23,32 @@ Provided by Ladybug 0.0.62
     Args:
         pickOption: 0= Cut profile device on a provided shading surface. 1= =Device optimised for period, will give the horizontal or tilted surface over the top of the window. 2= Calculate device as in Sunshades program. 3= Pergola with fins. When option 1 is selected you can get the pergola elements. 4= Surround device with vertical elements, give the required shade device on the limits of the window
         _window: A Surface or Brep representing a window to be used for shading design.  This can also be a list of Surfaces of Breps.
+        _numOfShds_: The number of shades to generated for each window.
         _udiv_: Number of row divisions of the window. Used for choosing the lower and higher rows you want to protect. Default is 3.
-        _numPergolaFins_: "Number of pergola fins. Default is 10.
-        _finsAngle_: "Angle for pergola fins. Default is 45.
-        ---------------: ...
+        _sunVectors: Sun vectors from the sunPath component.
         context_: Breps/surfaces that you want to account for as blocking objects. Using it you'll get the shading shape needed for the specific situation.
-        _showObstructContext_: Boolean. Visualise which parts of the context are obstructing the sun rays at the defined analysis period. Default is False.
-        _sunVectors: Output of Ladybug sunPath component.
-        ---------------: ...
         shadeSurface_: An optional shade surface representing a 2D area under consideration for shading. This input can only be used with the sun vector method.
+        ---------------: ...
         _shdSrfAngle_: In case NO shadeSurface is provided a plane over the window will be used as base for the calculation. In this case you can provide the angle of this plane. Default is 0.0.
         _shdSrfShift_: In case NO shadeSurface is provided a plane over the window will be used as base for the calculation. n this case you can provide a shift distance from top of the window. Default is 0.01
+        _numPergolaFins_: "Number of pergola fins. Default is 10.
+        _finsAngle_: "Angle for pergola fins. Default is 45.
         ---------------: ...
         _delaunayHeight_: Distance from base curve and top intersection points. Used by the Delauney Mesh component. Default is 5.
         _offsetFactor_: VERY important input!! The offset factor for the ConvexHull curve. Will be used for the Delauneay mesh. Default is 40.
         _res_: Divide the offset curve for the Delaunay operation.
     Returns:
         readMe!: ...
+        pointsOnWindow: Net of points on window
+        uPoints: Net of points on window
+        ptsContext: Show the intersection point of sun vectors with context
+        cullPts: Show the points that define the contour of the shading device. Pay attention to those more/less dense areas covered by these points.
         finalSrf: Surface representing the shape of the shading device.
-        pergola: Surfaces representing the pergola fins for the sading device.
 """
 
 ghenv.Component.Name = "Sun_Shades_Calculator"
 ghenv.Component.NickName = 'Sun_Shades_Calculator'
-ghenv.Component.Message = 'VER 0.0.1\nJul_26_2017'
+ghenv.Component.Message = 'VER 0.0.1\nJun_19_2016'
 ghenv.Component.IconDisplayMode = ghenv.Component.IconDisplayMode.application
 ghenv.Component.Category = "Ladybug"
 ghenv.Component.SubCategory = "2 | VisualizeWeatherData"
@@ -750,6 +752,14 @@ def main():
     window = _window
     sunVectors = _sunVectors
     
+    try:
+        _numPergolaFins_
+        _shdSrfShift_
+    except:
+        _numPergolaFins_ =  None
+        _shdSrfShift_    = None
+
+
     if _numOfShds_       == None:                         numOfShds         = 10
     else:                                                 numOfShds         = _numOfShds_
     if _numPergolaFins_  == None:                         numPergolaFins    = 10
@@ -817,18 +827,16 @@ else:
     
     
 """    
-#Hide/Show outputs
+#Hide(True)/Show(False) outputs
 ghenv.Component.Params.Output[1].Hidden   = True     # pointsOnWindow
-ghenv.Component.Params.Output[2].Hidden   = True     # PtsContext
-ghenv.Component.Params.Output[3].Hidden   = True     # cullPts
-ghenv.Component.Params.Output[4].Hidden   = True     # verticalSurf ??? What is this one?
-ghenv.Component.Params.Output[5].Hidden   = True     # --------------------
-ghenv.Component.Params.Output[6].Hidden   = True     # contextVectors
-ghenv.Component.Params.Output[7].Hidden   = True    # noContextVectors
-ghenv.Component.Params.Output[8].Hidden   = True     # --------------------
-ghenv.Component.Params.Output[9].Hidden   = False     # finalSrf
-ghenv.Component.Params.Output[10].Hidden  = True    # pergola
+ghenv.Component.Params.Output[2].Hidden   = True     # uPoints
+ghenv.Component.Params.Output[3].Hidden   = True     # PtsContext
+ghenv.Component.Params.Output[4].Hidden   = True     # cullPts
+ghenv.Component.Params.Output[5].Hidden   = False    # finalSrf
 """
 ghenv.Component.Params.Output[1].Hidden   = True     # pointsOnWindow
-ghenv.Component.Params.Output[2].Hidden   = True     # PtsContext
+ghenv.Component.Params.Output[2].Hidden   = True     # uPoints
+ghenv.Component.Params.Output[3].Hidden   = True     # PtsContext
+ghenv.Component.Params.Output[4].Hidden   = True     # cullPts
+ghenv.Component.Params.Output[5].Hidden   = False    # finalSrf
     
