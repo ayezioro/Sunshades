@@ -1,5 +1,5 @@
 ﻿# Sun Shades Calculator
-# Copyright (c) 2016, Abraham Yezioro <ayez@technion.ac.il> and Antonello Di Nunzio <antonellodinunzio@gmail.com> 
+# Copyright (c) 2017, Abraham Yezioro <ayez@technion.ac.il> and Antonello Di Nunzio <antonellodinunzio@gmail.com> 
 # Sun Shades Calculator is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU General Public License as published 
 # by the Free Software Foundation; either version 3 of the License, 
@@ -15,13 +15,16 @@
 # @license GPL-3.0+ <http://spdx.org/licenses/GPL-3.0+>
 
 """
-Use this component to bla bla bla
+Use this component to generate shading devices, either surface or pergola, for any glazed surface or list of glazed surfaces.  
+The component first culls all sun vectors obstructed by the context, if provided.
+By default it calculates the device as a "new brand" one but it also can calculate the cut profile for a given surface.
+The default it will generate an overhang over the window (or multiple overhangs if the _numOfShds is increased).  
 
 -
-Provided by Ladybug 0.0.62
+Provided by Ladybug 0.0.65
     
     Args:
-        pickOption: 0= Cut profile device on a provided shading surface. 1= =Device optimised for period, will give the horizontal or tilted surface over the top of the window. 2= Calculate device as in Sunshades program. 3= Pergola with fins. When option 1 is selected you can get the pergola elements. 4= Surround device with vertical elements, give the required shade device on the limits of the window
+        _SurfaceOrPergola_: 0= Device optimised for period, will give the horizontal or tilted surface over the top of the window, or the cut profile device on a provided shading surface. 1= Pergola with fins. Default is 0.
         _window: A Surface or Brep representing a window to be used for shading design.  This can also be a list of Surfaces of Breps.
         _numOfShds_: The number of shades to generated for each window.
         _udiv_: Number of row divisions of the window. Used for choosing the lower and higher rows you want to protect. Default is 3.
@@ -46,13 +49,13 @@ Provided by Ladybug 0.0.62
         finalSrf: Surface representing the shape of the shading device.
 """
 
-ghenv.Component.Name = "Sun_Shades_Calculator"
-ghenv.Component.NickName = 'Sun_Shades_Calculator'
-ghenv.Component.Message = 'VER 0.0.1\nJun_19_2016'
+ghenv.Component.Name = "Ladybug_Sun_Shades_Calculator"
+ghenv.Component.NickName = 'SunShades_Calc'
+ghenv.Component.Message = 'VER 0.0.65\nJul_28_2016'
 ghenv.Component.IconDisplayMode = ghenv.Component.IconDisplayMode.application
 ghenv.Component.Category = "Ladybug"
-ghenv.Component.SubCategory = "2 | VisualizeWeatherData"
-#compatibleLBVersion = VER 0.0.59\nJAN_24_2016
+ghenv.Component.SubCategory = "7 | WIP"
+#compatibleLBVersion = VER 0.0.59\nFEB_01_2015
 try: ghenv.Component.AdditionalHelpFromDocStrings = "0"
 except: pass
 
@@ -75,16 +78,12 @@ from Grasshopper.Kernel.Data import GH_Path                     # For creating P
 from Grasshopper import DataTree                                # For creating Data Tree
 # #########################################
 
-
-
 inputsDict = {
      
-0:  ["pickOption", "0: Cut profile device on a provided shading surface. " \
-    "1: Device optimised for period, will give the horizontal or tilted surface over the top of the window. " \
-    "2= Calculate device as in Sunshades program. 3: Pergola with fins. When option 1 is selected you can get the pergola elements. " \
-    "4: Surround device with vertical elements, give the required shade device on the limits of the window."],
+0:  ["_SurfaceOrPergola_", "0= Device optimised for period, will give the horizontal or tilted surface over the top of the window,"\
+    " or the cut profile device on a provided shading surface. 1= Pergola with fins. Default is 0."],
 1:  ["_window", "A Surface or Brep representing a window to be used for shading design.  This can also be a list of Surfaces of Breps."],
-2:  ["_numOfShds_", "The number of shades to generated for each glazed surface.."],
+2:  ["_numOfShds_", "The number of shades to generated for each glazed surface."],
 3:  ["_udiv_", "Number of row divisions of the window. Used for choosing the lower and higher rows you want to protect. Default is 1."],
 4:  ["_sunVectors", "Output of Ladybug sunPath component."],
 5:  ["context_", "Breps/surfaces that you want to account for as blocking objects. "],
@@ -102,12 +101,12 @@ inputsDict = {
 15: ["_res_", "Divide the offset curve for the Delaunay operation."],
 }
 
-
 # manage component inputs
 
+if _SurfaceOrPergola_ == None: _SurfaceOrPergola_ = 0
 numInputs = ghenv.Component.Params.Input.Count
 
-if pickOption == 0 and shadeSurface_ == None:
+if _SurfaceOrPergola_ == 0 and shadeSurface_ == None:
     for input in range(numInputs):
         if input == 9 or input == 10:
             ghenv.Component.Params.Input[input].NickName = "."
@@ -118,12 +117,12 @@ if pickOption == 0 and shadeSurface_ == None:
             ghenv.Component.Params.Input[input].NickName = inputsDict[input][0]
             ghenv.Component.Params.Input[input].Name = inputsDict[input][0]
             ghenv.Component.Params.Input[input].Description = inputsDict[input][1]
-elif pickOption == 1 and shadeSurface_ == None:
+elif _SurfaceOrPergola_ == 1 and shadeSurface_ == None:
     for input in range(numInputs):
         ghenv.Component.Params.Input[input].NickName = inputsDict[input][0]
         ghenv.Component.Params.Input[input].Name = inputsDict[input][0]
         ghenv.Component.Params.Input[input].Description = inputsDict[input][1]
-elif (pickOption == 0 or pickOption == 2) and shadeSurface_ != None:
+elif (_SurfaceOrPergola_ == 0 or _SurfaceOrPergola_ == 2) and shadeSurface_ != None:
     for input in range(numInputs):
         if input == 7 or input == 8 or input == 9 or input == 10:
             ghenv.Component.Params.Input[input].NickName = "."
@@ -133,7 +132,7 @@ elif (pickOption == 0 or pickOption == 2) and shadeSurface_ != None:
             ghenv.Component.Params.Input[input].NickName = inputsDict[input][0]
             ghenv.Component.Params.Input[input].Name = inputsDict[input][0]
             ghenv.Component.Params.Input[input].Description = inputsDict[input][1]
-elif pickOption == 1 and shadeSurface_ != None:
+elif _SurfaceOrPergola_ == 1 and shadeSurface_ != None:
     for input in range(numInputs):
         if input == 7 or input == 8:
             ghenv.Component.Params.Input[input].NickName = "."
@@ -151,7 +150,6 @@ else:
             
 ghenv.Component.Attributes.Owner.OnPingDocument()
 
-
 # functions
 def giveWarning(warningMsg):
     w = gh.GH_RuntimeMessageLevel.Warning
@@ -159,9 +157,15 @@ def giveWarning(warningMsg):
     print warningMsg
     return -1
 
-def checkTheData(window, sunVectors):
-    if not window\
-    or not sunVectors:
+def checkTheData(window, sunVectors, context):
+    contextFlag = True
+    if context:
+        for i in range(len(context)):
+            if context[i] == None:
+                warning = "Context has Null items. Please clean them and try again"
+                giveWarning(warning)
+                contextFlag = False
+    if not window or not sunVectors or (context and contextFlag == False):
         checkData = False
     elif window and sunVectors:
         checkData = True
@@ -184,7 +188,6 @@ def identifyRectangularWindow(window):
     else:
         rectangularWindow = False
     return rectangularWindow
-
 
 def pointsOfWindow(window, udiv, numOfShds):
     rectangularWindow = identifyRectangularWindow(window)
@@ -251,8 +254,6 @@ def pointsOfWindow(window, udiv, numOfShds):
     
     return pointsOnWindow, uPoints
 
-
-    
 def loopRowPoints(uPoints, udiv, numOfShds):
     row1 = 0               # First row of points. Usually the bottom line
     start = row1 * udiv
@@ -275,7 +276,6 @@ def loopRowPoints(uPoints, udiv, numOfShds):
         rowPoints.append(tmpPts)
     return rowPoints, groupPoints
 
-# it comes from 'Ladybug_ShadingDesigner'
 def isSrfFacingTheVector(sunV, normalVector):
     sunVRev = rc.Geometry.Vector3d(sunV)
     sunVRev.Reverse()
@@ -283,8 +283,6 @@ def isSrfFacingTheVector(sunV, normalVector):
     if rc.Geometry.Vector3d.VectorAngle(sunVRev, normalVector) < m.pi/2: return True
     else: return False
 
-
-# it comes from 'Ladybug_ShadingDesigner'
 def getSrfPlane(brep):
     cenPt = rc.Geometry.AreaMassProperties.Compute(brep).Centroid
     # sometimes the center point is not in the right place
@@ -417,7 +415,6 @@ def calcIntersections(shadeSurface, pointsOnWindow, grPt, sunVectors, shdSrfShif
         cullPts = raysIntersection(sun_rays, [shadeSurface])
     
     return cullPts, ptsContext, normalVector, cenPt, vector_p
-
 
 def finalSurfStuff(cullPts, delaunayHeight, offsetFactor, shadeSurface):
     
@@ -553,9 +550,7 @@ def finalSurfStuff(cullPts, delaunayHeight, offsetFactor, shadeSurface):
         #print distance
         distances.append(distance)
         
-        
     finalSrf = splitSrf[distances.index(min(distances))]
-    
     
     """
     # Below the original way to solve the issue ##
@@ -691,7 +686,6 @@ def calculatePergola(finalSrf, vectorP, normalVector, cenPt, numPergolaFins, fin
     # point useful to find the right height
     gen_point = planes[0].Origin
 
-
     ############################################################## INTERSECTIONS
     
     # it comes from 'Ladybug_ShadingDesigner'
@@ -707,7 +701,6 @@ def calculatePergola(finalSrf, vectorP, normalVector, cenPt, numPergolaFins, fin
     for sunV in sunVectors:
         if isSrfFacingTheVector(sunV, normalVector):
             sun_lines.append(rc.Geometry.Line(gen_point, -sunV, 1000))
-    
     
     # select a plane and find intersection point
     pp = planes[1]
@@ -751,7 +744,6 @@ def main():
     # inputs
     window = _window
     sunVectors = _sunVectors
-    
     try:
         _numPergolaFins_
         _shdSrfShift_
@@ -760,7 +752,7 @@ def main():
         _shdSrfShift_    = None
 
 
-    if _numOfShds_       == None:                         numOfShds         = 10
+    if _numOfShds_       == None:                         numOfShds         = 1
     else:                                                 numOfShds         = _numOfShds_
     if _numPergolaFins_  == None:                         numPergolaFins    = 10
     else:                                                 numPergolaFins    = _numPergolaFins_
@@ -776,8 +768,6 @@ def main():
     else:                                                 udiv              = _udiv_ 
     if _offsetFactor_    == None:                         offsetFactor      = 40
     else:                                                 offsetFactor      = _offsetFactor_
-    if _numPergolaFins_  == None:                         numPergolaFins    = 10
-    else:                                                 numPergolaFins    = _numPergolaFins_
     
     # points
     pointsOnWindow, uPoints = pointsOfWindow(window, udiv, numOfShds)
@@ -806,7 +796,7 @@ def main():
             finalSrf_TMP = finalSurfStuff(cullPts, delaunayHeight, offsetFactor, shadeSurface_)
             if finalSrf_TMP != -1: 
                 print "Shading Calculation is done!"
-                if pickOption == 1:
+                if _SurfaceOrPergola_ == 1:
                     finalSrf.extend( calculatePergola(finalSrf_TMP, vector_p, normalVector, cenPt, numPergolaFins, finsAngle, sunVectors) )
                 else:
                     finalSrf.append( finalSurfStuff(cullPts, delaunayHeight, offsetFactor, shadeSurface_) )
@@ -815,7 +805,7 @@ def main():
 
 #Check the data
 #checkData = False
-checkData = checkTheData(_window, _sunVectors)
+checkData = checkTheData(_window, _sunVectors, context_)
 if checkData == True:
     result = main()
     if result != -1:
