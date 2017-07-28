@@ -1,4 +1,4 @@
-﻿# Sun Shades Calculator
+# Sun Shades Calculator
 # Copyright (c) 2017, Abraham Yezioro <ayez@technion.ac.il> and Antonello Di Nunzio <antonellodinunzio@gmail.com> 
 # Sun Shades Calculator is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU General Public License as published 
@@ -48,10 +48,10 @@ Provided by Ladybug 0.0.65
         cullPts: Show the points that define the contour of the shading device. Pay attention to those more/less dense areas covered by these points.
         finalSrf: Surface representing the shape of the shading device.
 """
-
+##print 'In sunShades'
 ghenv.Component.Name = "Ladybug_Sun_Shades_Calculator"
 ghenv.Component.NickName = 'SunShades_Calc'
-ghenv.Component.Message = 'VER 0.0.65\nJul_28_2016'
+ghenv.Component.Message = 'VER 0.0.65\nJUL_28_2017'
 ghenv.Component.IconDisplayMode = ghenv.Component.IconDisplayMode.application
 ghenv.Component.Category = "Ladybug"
 ghenv.Component.SubCategory = "7 | WIP"
